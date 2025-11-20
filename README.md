@@ -2,7 +2,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=no">
-    <title>GB Camera V19 (Layer Fix)</title>
+    <title>GB Camera V20 (Final)</title>
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -84,8 +84,8 @@
             overflow: hidden; 
             background: #000;
             border: 2px solid #333;
-            /* スタッキングコンテキストを作成 */
-            z-index: 1;
+            /* コンテキスト作成 */
+            isolation: isolate;
         }
 
         canvas {
@@ -94,43 +94,41 @@
             height: 100%;
             background-color: var(--gb-screen-bg); 
             image-rendering: pixelated; 
-        }
-
-        /* 表示用キャンバス：手前に表示 */
-        #gbCanvas {
-            position: relative;
-            z-index: 10;
-        }
-
-        /* 録画用キャンバス：真裏に配置 (display:noneやopacity:0は避ける) */
-        #recCanvas { 
             position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: 1; /* gbCanvasの下に配置 */
-            pointer-events: none;
-            background-color: var(--gb-screen-bg);
+            top: 0; left: 0;
+        }
+
+        /* ★修正ポイント: 
+           録画用キャンバス(recCanvas)を最前面(z-index:50)に配置し、
+           opacity:0 (透明) にすることで、ブラウザに「表示中」と認識させつつ
+           ユーザーからは見えないようにする。これで描画省略を防ぐ。
+        */
+        #gbCanvas {
+            z-index: 10; /* 表示用 */
+        }
+        #recCanvas { 
+            z-index: 50; /* 最前面 */
+            opacity: 0;  /* 透明 */
+            pointer-events: none; /* 操作透過 */
         }
 
         .scanlines {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             background: linear-gradient(to bottom, rgba(0,0,0,0), rgba(0,0,0,0.1) 50%, rgba(0,0,0,0) 50%);
-            background-size: 100% 4px; pointer-events: none; z-index: 15; opacity: 0.4;
+            background-size: 100% 4px; pointer-events: none; z-index: 20; opacity: 0.4;
         }
 
         #toast {
             position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
             background: rgba(0,0,0,0.8); color: #fff; padding: 8px 12px;
             font-size: 10px; display: none; pointer-events: none; white-space: nowrap; border-radius: 4px;
-            font-family: var(--font-main); border: 1px solid #fff; text-transform: uppercase; z-index: 25;
+            font-family: var(--font-main); border: 1px solid #fff; text-transform: uppercase; z-index: 100;
         }
 
         /* PREVIEW OVERLAY */
         #previewContainer {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background: #222; z-index: 30; display: none; 
+            background: #222; z-index: 200; display: none; 
             flex-direction: column; justify-content: center; align-items: center;
         }
         #previewMediaImg, #previewMediaVideo {
@@ -223,7 +221,7 @@
                     <canvas id="recCanvas" width="540" height="540"></canvas>
                     
                     <div class="scanlines"></div>
-                    <div id="toast">BOOTING...</div>
+                    <div id="toast"></div>
                     <div id="previewContainer">
                         <img id="previewMediaImg">
                         <video id="previewMediaVideo" controls autoplay loop></video>
@@ -274,10 +272,10 @@
         }
         window.addEventListener('load', autoFitScreen); window.addEventListener('resize', autoFitScreen);
 
-        // ★解像度設定
+        // 解像度
         const GB_RES = 135; 
-        const DISP_RES = 1080; // 画面表示用（綺麗）
-        const REC_RES = 540;   // 録画用（軽い）
+        const DISP_RES = 1080; 
+        const REC_RES = 540;   
         
         const FPS = 24;
         const config = { paletteIdx: 0, frameIdx: 0, brightness: 0, contrast: 2, camFacing: 'environment', zoomLevel: 1.0, locationName: "SHIBUYA, TOKYO" };
@@ -292,15 +290,13 @@
         const frames = ["OFF", "LOCATION TAG", "DATETIME", "FILM", "SCANLINE", "WHITE BORDER"]; 
         const bayerMatrix = [[0, 8, 2, 10],[12, 4, 14, 6],[3, 11, 1, 9],[15, 7, 13, 5]];
 
-        // Display Canvas
+        // Canvas Init
         const gbCanvas = document.getElementById('gbCanvas');
         const gbCtx = gbCanvas.getContext('2d', { willReadFrequently: true });
         
-        // Recording Canvas (Positioned behind main canvas)
         const recCanvas = document.getElementById('recCanvas');
         const recCtx = recCanvas.getContext('2d', { willReadFrequently: true });
 
-        // Processing Canvas (Small)
         const offCanvas = document.createElement('canvas');
         offCanvas.width = GB_RES; offCanvas.height = GB_RES;
         const offCtx = offCanvas.getContext('2d', { willReadFrequently: true });
@@ -349,16 +345,13 @@
                 
                 recMimeType = getSupportedMimeType();
                 if (!recMimeType) {
-                    console.warn("MediaRecorder not supported properly");
                     showToast("REC NOT SUPPORTED");
                 } else {
                     const recStream = recCanvas.captureStream(FPS);
-                    
                     mediaRecorder = new MediaRecorder(recStream, { 
                         mimeType: recMimeType, 
                         videoBitsPerSecond: 1000000 
                     }); 
-
                     mediaRecorder.ondataavailable = e => { 
                         if(e.data && e.data.size > 0) recordedChunks.push(e.data); 
                     };
@@ -393,10 +386,9 @@
             previewMediaVideo.src = url; previewMediaVideo.style.display = 'block';
             previewMediaImg.style.display = 'none'; previewContainer.style.display = 'flex';
             
-            // ミュート解除して再生
             previewMediaVideo.muted = false; 
             previewMediaVideo.volume = 1.0;
-            previewMediaVideo.play().catch(e => console.log("Auto-play blocked", e));
+            previewMediaVideo.play().catch(e => console.log("Play blocked", e));
             
             const ext = recMimeType.includes('mp4') ? 'mp4' : 'webm';
             currentMediaBlob = blob; currentMediaExt = ext; 
@@ -407,18 +399,11 @@
         function saveMedia() {
             if (!currentMediaBlob) return;
             const a = document.createElement('a'); const now = Date.now();
-            
-            if (currentMediaExt === 'png') {
-                a.href = currentMediaBlob;
-            } else {
-                a.href = URL.createObjectURL(currentMediaBlob);
-            }
-            
+            a.href = currentMediaExt === 'png' ? currentMediaBlob : URL.createObjectURL(currentMediaBlob);
             a.download = `gb-cam-${now}.${currentMediaExt}`;
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
-            
             if (currentMediaExt !== 'png') URL.revokeObjectURL(a.href);
             hidePreview(); showToast("SAVED");
         }
@@ -432,7 +417,6 @@
             if (previewMediaVideo.src) URL.revokeObjectURL(previewMediaVideo.src);
         }
 
-        // Core Render Logic
         function processPixels() {
             const vw = video.videoWidth, vh = video.videoHeight;
             if (vw === 0 || vh === 0) return false;
@@ -446,7 +430,6 @@
             const is16Color = palettes[config.paletteIdx].name === "16 COLOR";
             const imgData = offCtx.getImageData(0, 0, GB_RES, GB_RES);
             const d = imgData.data;
-            
             const cF = (259 * (config.contrast * 10 + 255)) / (255 * (259 - config.contrast * 10));
             const bV = config.brightness * 10;
 
@@ -455,7 +438,7 @@
                     let r = cF * (d[i] - 128) + 128 + bV;
                     let g = cF * (d[i+1] - 128) + 128 + bV;
                     let b = cF * (d[i+2] - 128) + 128 + bV;
-                    d[i]   = Math.min(255, Math.max(0, Math.round(r / 85) * 85));
+                    d[i] = Math.min(255, Math.max(0, Math.round(r / 85) * 85));
                     d[i+1] = Math.min(255, Math.max(0, Math.round(g / 85) * 85));
                     d[i+2] = Math.min(255, Math.max(0, Math.round(b / 85) * 85));
                 } else {
@@ -465,7 +448,9 @@
                     let idx = gray < 64 ? 0 : gray < 128 ? 1 : gray < 192 ? 2 : 3;
                     if (gray < 0) idx = 0; if (gray > 255) idx = 3;
                     const pal = palettes[config.paletteIdx].colors;
-                    d[i] = pal[idx][0]; d[i+1] = pal[idx][1]; d[i+2] = pal[idx][2];
+                    if(pal && pal[idx]) {
+                         d[i] = pal[idx][0]; d[i+1] = pal[idx][1]; d[i+2] = pal[idx][2];
+                    }
                 }
             }
             offCtx.putImageData(imgData, 0, 0);
@@ -475,15 +460,21 @@
         function renderFrame(targetCtx, targetSize) {
             targetCtx.imageSmoothingEnabled = false;
             targetCtx.drawImage(offCanvas, 0, 0, targetSize, targetSize);
-            drawOverlay(targetCtx, targetSize);
+            try {
+                drawOverlay(targetCtx, targetSize);
+            } catch(e) {
+                console.warn("Overlay Error", e);
+            }
         }
 
         function drawOverlay(ctx, size) {
             const type = frames[config.frameIdx];
+            // エラー防止: 16 COLORの時はパレット色が空なので処理を分ける
             const is16 = palettes[config.paletteIdx].name === "16 COLOR";
-            const pal = is16 ? null : palettes[config.paletteIdx].colors;
-            const dk = is16 ? '#000' : `rgb(${pal[0].join(',')})`;
-            const lt = is16 ? '#FFF' : `rgb(${pal[3].join(',')})`;
+            // 安全な色取得
+            const pal = !is16 ? palettes[config.paletteIdx].colors : null;
+            const dk = !is16 && pal ? `rgb(${pal[0].join(',')})` : '#000';
+            const lt = !is16 && pal ? `rgb(${pal[3].join(',')})` : '#FFF';
             
             ctx.fillStyle = dk;
             const s = size / 1080;
@@ -520,7 +511,6 @@
         }
 
         let lastTime = 0;
-        
         function loop(timestamp) {
             if (video.readyState === 4 && previewContainer.style.display !== 'flex') {
                 if (timestamp - lastTime >= 1000/FPS) {
@@ -565,7 +555,6 @@
             config.paletteIdx = (config.paletteIdx + 1) % palettes.length;
             showToast(palettes[config.paletteIdx].name);
         });
-
         document.getElementById('btnSelect').addEventListener('click', (e) => {
             e.preventDefault(); 
             if(previewContainer.style.display === 'flex') return;
@@ -573,7 +562,6 @@
             showToast(`FRAME: ${frames[config.frameIdx]}`);
             if(frames[config.frameIdx] === "LOCATION TAG") updateLocation();
         });
-
         document.getElementById('btnStart').addEventListener('click', (e) => {
             e.preventDefault(); 
             if(previewContainer.style.display === 'flex') return;
@@ -585,15 +573,13 @@
         function startPressA(e) {
             e.preventDefault();
             if(isRecording || previewContainer.style.display === 'flex') return;
-            
             isLongPress = false; 
             btnA.classList.add('pressing');
-            
             longPressTimer = setTimeout(() => {
                 if (mediaRecorder && mediaRecorder.state === 'inactive') {
                     isLongPress = true;
                     recordedChunks = []; 
-                    // 録画開始時に一度強制描画
+                    // 録画開始前に確実に一度描画してキャンバスを汚す
                     renderFrame(recCtx, REC_RES);
                     mediaRecorder.start(1000); 
                     isRecording = true; 
@@ -602,14 +588,11 @@
                 }
             }, 400); 
         }
-
         function endPressA(e) {
             e.preventDefault(); 
             clearTimeout(longPressTimer); 
             btnA.classList.remove('pressing');
-
             if(previewContainer.style.display === 'flex') { saveMedia(); return; }
-            
             if(isLongPress) {
                 if(isRecording && mediaRecorder && mediaRecorder.state === 'recording') { 
                     mediaRecorder.stop(); 
@@ -627,7 +610,6 @@
 
         btnA.addEventListener('mousedown', startPressA); btnA.addEventListener('touchstart', startPressA);
         btnA.addEventListener('mouseup', endPressA); btnA.addEventListener('touchend', endPressA);
-
         ['Up','Down','Left','Right'].forEach(d => document.getElementById('d'+d).addEventListener('click', (e)=>{ e.preventDefault(); handleDpad(d.toLowerCase()); }));
         
         zoomSlider.addEventListener('input', (e) => { applyZoom(e.target.value); });
@@ -642,7 +624,6 @@
 
         autoFitScreen();
         initCamera(); 
-        // READY表示は削除済み
     </script>
 </body>
 </html>
