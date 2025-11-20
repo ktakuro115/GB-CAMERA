@@ -273,7 +273,7 @@
             { name: "GREY SCALE", colors: [[20,20,20], [80,80,80], [160,160,160], [240,240,240]], border: "#555" },
             { name: "VIRTUAL RED", colors: [[40,0,0], [100,0,0], [180,0,0], [255,50,50]], border: "#800" },
             { name: "CYBER BLUE", colors: [[0,20,40], [0,70,110], [0,140,190], [180,230,255]], border: "#004070" },
-            { name: "16 COLOR", colors: [], border: "#000" } // 16色に変更
+            { name: "16 COLOR", colors: [], border: "#000" } // 16色に戻す
         ];
         const frames = ["OFF", "FILM", "SCANLINE", "VIGNETTE", "DOT MATRIX", "LCD BORDER", "DATETIME"]; 
         const bayerMatrix = [[0, 8, 2, 10],[12, 4, 14, 6],[3, 11, 1, 9],[15, 7, 13, 5]];
@@ -370,7 +370,6 @@
                         let b = cF * (d[i+2] - 128) + 128 + bV;
 
                         // 2. 4階調量子化
-                        // 各チャンネルの値を0-3にマップし、それを元の0-255の範囲に戻す (0, 85, 170, 255)
                         r = Math.round(r / 255 * Q_MAX) * Q_FACTOR;
                         g = Math.round(g / 255 * Q_MAX) * Q_FACTOR;
                         b = Math.round(b / 255 * Q_MAX) * Q_FACTOR;
@@ -498,9 +497,12 @@
         function endPressA(e) {
             e.preventDefault(); clearTimeout(longPressTimer); btnA.classList.remove('pressing');
             if (isLongPress) {
+                // 長押し: 録画停止と保存 (saveVideo関数内で自動的にダウンロードがトリガーされる)
                 if(isRecording) { mediaRecorder.stop(); isRecording = false; led.classList.remove('on'); showToast("SAVED"); }
             } else {
+                // 短押し: 写真撮影と保存 (ダウンロードがトリガーされる)
                 const a = document.createElement('a'); a.download = `gb-photo-${Date.now()}.png`; a.href = canvas.toDataURL('image/png', 1.0); a.click();
+                // Flash effect (Canvas opacity)
                 canvas.style.opacity = 0; setTimeout(() => canvas.style.opacity = 1, 100);
             }
             isLongPress = false;
@@ -510,6 +512,7 @@
 
         ['Up','Down','Left','Right'].forEach(d => document.getElementById('d'+d).addEventListener('click', (e)=>{ e.preventDefault(); handleDpad(d.toLowerCase()); }));
         
+        // 【保存機能の確認】写真と動画はブラウザのダウンロード機能により、デバイスに保存されます。
         function saveVideo() { 
             const b = new Blob(recordedChunks, {type: recMimeType}); 
             const u = URL.createObjectURL(b); 
