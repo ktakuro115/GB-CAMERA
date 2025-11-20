@@ -2,7 +2,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=no">
-    <title>GB Camera V16 (1080p) - Final Fix</title>
+    <title>GB Camera V17 (Perf Fix)</title>
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -93,6 +93,9 @@
             background-color: var(--gb-screen-bg); 
             image-rendering: pixelated; 
         }
+
+        /* 録画用キャンバスは非表示 */
+        #recCanvas { display: none; }
 
         .scanlines {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
@@ -200,6 +203,8 @@
                 <div class="battery-led" id="led"></div>
                 <div class="screen-cover">
                     <canvas id="gbCanvas" width="1080" height="1080"></canvas>
+                    <canvas id="recCanvas" width="540" height="540"></canvas>
+                    
                     <div class="scanlines"></div>
                     <div id="toast">BOOTING...</div>
                     <div id="previewContainer">
@@ -252,8 +257,11 @@
         }
         window.addEventListener('load', autoFitScreen); window.addEventListener('resize', autoFitScreen);
 
-        const GB_RES = 135; const FINAL_RES = 1080;
-        // FPSを統一して負荷を軽減
+        // ★解像度設定
+        const GB_RES = 135; 
+        const DISP_RES = 1080; // 画面表示用（綺麗）
+        const REC_RES = 540;   // 録画用（軽い）
+        
         const FPS = 24;
         const config = { paletteIdx: 0, frameIdx: 0, brightness: 0, contrast: 2, camFacing: 'environment', zoomLevel: 1.0, locationName: "SHIBUYA, TOKYO" };
         
@@ -267,8 +275,15 @@
         const frames = ["OFF", "LOCATION TAG", "DATETIME", "FILM", "SCANLINE", "WHITE BORDER"]; 
         const bayerMatrix = [[0, 8, 2, 10],[12, 4, 14, 6],[3, 11, 1, 9],[15, 7, 13, 5]];
 
-        const canvas = document.getElementById('gbCanvas');
-        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+        // Display Canvas
+        const gbCanvas = document.getElementById('gbCanvas');
+        const gbCtx = gbCanvas.getContext('2d', { willReadFrequently: true });
+        
+        // Recording Canvas (Hidden)
+        const recCanvas = document.getElementById('recCanvas');
+        const recCtx = recCanvas.getContext('2d', { willReadFrequently: true });
+
+        // Processing Canvas (Small)
         const offCanvas = document.createElement('canvas');
         offCanvas.width = GB_RES; offCanvas.height = GB_RES;
         const offCtx = offCanvas.getContext('2d', { willReadFrequently: true });
@@ -292,7 +307,6 @@
         let currentMediaExt = null;
         let recMimeType = '';
 
-        // 対応MIMEタイプの自動検出（互換性向上）
         function getSupportedMimeType() {
             const types = [
                 'video/mp4',
@@ -309,6 +323,7 @@
         async function initCamera() {
             if (stream) stream.getTracks().forEach(t => t.stop());
             try {
+                // カメラ自体は高解像度で取得（ズーム時の画質維持のため）
                 stream = await navigator.mediaDevices.getUserMedia({ 
                     video: { width: {ideal: 1080}, height: {ideal: 1080}, facingMode: config.camFacing }, 
                     audio: false 
@@ -320,12 +335,11 @@
                 if (!recMimeType) {
                     console.warn("MediaRecorder not supported properly");
                     showToast("REC NOT SUPPORTED");
-                    // 録画非対応でもカメラとしては動くようにreturnしない
                 } else {
-                    // ストリームのFPSを描画ループに合わせる
-                    const recStream = canvas.captureStream(FPS);
+                    // ★録画用キャンバスからストリームを取得
+                    const recStream = recCanvas.captureStream(FPS);
                     
-                    // ビットレートを下げて負荷軽減 (1.0M) 
+                    // 540p なのでビットレートは 1.0Mbps で十分綺麗
                     mediaRecorder = new MediaRecorder(recStream, { 
                         mimeType: recMimeType, 
                         videoBitsPerSecond: 1000000 
@@ -334,13 +348,10 @@
                     mediaRecorder.ondataavailable = e => { 
                         if(e.data && e.data.size > 0) recordedChunks.push(e.data); 
                     };
-                    
                     mediaRecorder.onstop = () => {
-                        // チャンク保存完了待ち
                         setTimeout(showVideoPreview, 100);
                     };
                 }
-
             } catch(e) { console.error(e); showToast("CAMERA ERROR"); }
         }
 
@@ -368,7 +379,6 @@
             previewMediaVideo.src = url; previewMediaVideo.style.display = 'block';
             previewMediaImg.style.display = 'none'; previewContainer.style.display = 'flex';
             
-            // 拡張子の決定
             const ext = recMimeType.includes('mp4') ? 'mp4' : 'webm';
             currentMediaBlob = blob; currentMediaExt = ext; 
             
@@ -404,14 +414,15 @@
         }
 
         // Core Render Logic
-        function renderToCanvas(targetCanvas, targetCtx, isForExport = false) {
+        function processPixels() {
             const vw = video.videoWidth, vh = video.videoHeight;
-            if (vw === 0 || vh === 0) return;
+            if (vw === 0 || vh === 0) return false;
 
             const minDim = Math.min(vw, vh);
             const cropDim = minDim / config.zoomLevel; 
             let sx = (vw - cropDim) / 2, sy = (vh - cropDim) / 2;
             
+            // 1. 小さいキャンバスに描画 (135px)
             offCtx.drawImage(video, sx, sy, cropDim, cropDim, 0, 0, GB_RES, GB_RES);
 
             const is16Color = palettes[config.paletteIdx].name === "16 COLOR";
@@ -421,6 +432,7 @@
             const cF = (259 * (config.contrast * 10 + 255)) / (255 * (259 - config.contrast * 10));
             const bV = config.brightness * 10;
 
+            // 2. ピクセル処理
             for(let i = 0; i < d.length; i += 4) {
                 if (is16Color) {
                     let r = cF * (d[i] - 128) + 128 + bV;
@@ -440,18 +452,18 @@
                 }
             }
             offCtx.putImageData(imgData, 0, 0);
-
-            targetCtx.imageSmoothingEnabled = false;
-            targetCtx.drawImage(offCanvas, 0, 0, FINAL_RES, FINAL_RES);
-            drawFrame(targetCtx);
-
-            if (!isForExport) {
-                const scanlineEl = document.querySelector('.scanlines');
-                if(scanlineEl) scanlineEl.style.opacity = is16Color ? 0.1 : 0.4;
-            }
+            return true;
         }
 
-        function drawFrame(ctx) {
+        function renderFrame(targetCtx, targetSize) {
+            targetCtx.imageSmoothingEnabled = false;
+            // 拡大描画
+            targetCtx.drawImage(offCanvas, 0, 0, targetSize, targetSize);
+            // フレーム描画
+            drawOverlay(targetCtx, targetSize);
+        }
+
+        function drawOverlay(ctx, size) {
             const type = frames[config.frameIdx];
             const is16 = palettes[config.paletteIdx].name === "16 COLOR";
             const pal = is16 ? null : palettes[config.paletteIdx].colors;
@@ -459,30 +471,38 @@
             const lt = is16 ? '#FFF' : `rgb(${pal[3].join(',')})`;
             
             ctx.fillStyle = dk;
-            const bs = 80; 
+            
+            // サイズに応じたスケーリング係数 (1080基準)
+            const s = size / 1080;
+            const bs = 80 * s; 
+            const fontSize = 40 * s;
 
             if (type === "FILM") {
-                ctx.fillRect(0, 0, 1080, 60); ctx.fillRect(0, 1020, 1080, 60);
-                ctx.fillRect(0, 0, 60, 1080); ctx.fillRect(1020, 0, 60, 1080);
-                ctx.fillStyle = lt; ctx.font = "40px 'Press Start 2P'"; ctx.fillText("POCKET CAM", 80, 45);
+                const barH = 60 * s;
+                ctx.fillRect(0, 0, size, barH); ctx.fillRect(0, size - barH, size, barH);
+                ctx.fillRect(0, 0, barH, size); ctx.fillRect(size - barH, 0, barH, size);
+                ctx.fillStyle = lt; ctx.font = `${fontSize}px 'Press Start 2P'`; 
+                ctx.fillText("POCKET CAM", 80 * s, 45 * s);
             } else if (type === "SCANLINE") {
                 ctx.fillStyle = "rgba(0,0,0,0.2)";
-                for(let y=0; y<1080; y+=8) ctx.fillRect(0, y, 1080, 4);
+                const lineH = Math.max(1, 4 * s);
+                const gap = 8 * s;
+                for(let y=0; y<size; y+=gap) ctx.fillRect(0, y, size, lineH);
             } else if (type === "DATETIME") {
                 const now = new Date();
                 const dStr = `${now.getFullYear()}/${(now.getMonth()+1).toString().padStart(2,'0')}/${now.getDate().toString().padStart(2,'0')}`;
                 const tStr = `${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}`;
-                ctx.fillStyle = dk; ctx.fillRect(0, 0, 1080, 80);
-                ctx.fillStyle = lt; ctx.font = "40px 'Press Start 2P'"; 
-                ctx.fillText(dStr, 80, 40); ctx.fillText(tStr, 80, 75);
+                ctx.fillStyle = dk; ctx.fillRect(0, 0, size, 80 * s);
+                ctx.fillStyle = lt; ctx.font = `${fontSize}px 'Press Start 2P'`; 
+                ctx.fillText(dStr, 80 * s, 40 * s); ctx.fillText(tStr, 80 * s, 75 * s);
             } else if (type === "WHITE BORDER") {
                 ctx.fillStyle = "white";
-                ctx.fillRect(0, 0, 1080, bs); ctx.fillRect(0, 1080-bs, 1080, bs);
-                ctx.fillRect(0, bs, bs, 1080-2*bs); ctx.fillRect(1080-bs, bs, bs, 1080-2*bs);
+                ctx.fillRect(0, 0, size, bs); ctx.fillRect(0, size-bs, size, bs);
+                ctx.fillRect(0, bs, bs, size-2*bs); ctx.fillRect(size-bs, bs, bs, size-2*bs);
             } else if (type === "LOCATION TAG") {
-                ctx.fillStyle = dk; ctx.fillRect(0, 0, 1080, 80);
-                ctx.fillStyle = lt; ctx.font = "40px 'Press Start 2P'"; 
-                ctx.fillText(config.locationName, 80, 55);
+                ctx.fillStyle = dk; ctx.fillRect(0, 0, size, 80 * s);
+                ctx.fillStyle = lt; ctx.font = `${fontSize}px 'Press Start 2P'`; 
+                ctx.fillText(config.locationName, 80 * s, 55 * s);
             }
         }
 
@@ -491,7 +511,15 @@
         function loop(timestamp) {
             if (video.readyState === 4 && previewContainer.style.display !== 'flex') {
                 if (timestamp - lastTime >= 1000/FPS) {
-                    renderToCanvas(canvas, ctx, false);
+                    if(processPixels()) {
+                        // 1. 表示用 (1080p)
+                        renderFrame(gbCtx, DISP_RES);
+                        
+                        // 2. 録画中なら録画用キャンバスも更新 (540p)
+                        if (isRecording) {
+                            renderFrame(recCtx, REC_RES);
+                        }
+                    }
                     lastTime = timestamp;
                 }
             }
@@ -500,10 +528,14 @@
 
         function capturePhoto() {
             const captureCanvas = document.createElement('canvas');
-            captureCanvas.width = FINAL_RES;
-            captureCanvas.height = FINAL_RES;
+            captureCanvas.width = DISP_RES; // 写真は高画質のまま
+            captureCanvas.height = DISP_RES;
             const captureCtx = captureCanvas.getContext('2d');
-            renderToCanvas(captureCanvas, captureCtx, true);
+            
+            // Processed state is already in offCanvas from loop, but let's ensure fresh
+            processPixels();
+            renderFrame(captureCtx, DISP_RES);
+            
             showImagePreview(captureCanvas.toDataURL('image/png', 1.0));
         }
 
@@ -555,7 +587,11 @@
                 if (mediaRecorder && mediaRecorder.state === 'inactive') {
                     isLongPress = true;
                     recordedChunks = []; 
-                    mediaRecorder.start(1000); // 1秒ごとにデータ保存（メモリ対策）
+                    
+                    // 録画開始前に一度強制レンダリングしてキャンバスを初期化
+                    renderFrame(recCtx, REC_RES);
+                    
+                    mediaRecorder.start(1000); 
                     isRecording = true; 
                     led.classList.add('on'); 
                     showToast("REC STARTED");
@@ -579,7 +615,7 @@
             } else {
                 if (!isRecording) {
                     capturePhoto(); 
-                    canvas.style.opacity = 0; setTimeout(()=>canvas.style.opacity=1, 100);
+                    gbCanvas.style.opacity = 0; setTimeout(()=>gbCanvas.style.opacity=1, 100);
                 }
             }
             isLongPress = false;
@@ -602,7 +638,7 @@
 
         autoFitScreen();
         initCamera(); 
-        showToast("READY (1080P)");
+        showToast("READY (V17 PERF)");
     </script>
 </body>
 </html>
