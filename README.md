@@ -1,15 +1,14 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
-    <title>GB Camera V16 (1080p) - Fixed</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=no">
+    <title>GB Camera V16 (1080p) - Stable</title>
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
 
     <style>
-        /* ----- BASIC SETUP ----- */
         :root {
             --gb-body: #c0c0c0;
             --gb-screen-bg: #0f380f;
@@ -18,17 +17,12 @@
 
         body {
             background-color: #151515;
-            background-image: 
-                linear-gradient(rgba(50, 50, 50, 0.5) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(50, 50, 50, 0.5) 1px, transparent 1px);
-            background-size: 30px 30px;
             font-family: var(--font-main);
             height: 100vh;
             width: 100vw;
             margin: 0;
             overflow: hidden;
             display: flex;
-            flex-direction: column;
             justify-content: center;
             align-items: center;
             touch-action: none;
@@ -36,71 +30,57 @@
             -webkit-user-select: none;
         }
 
-        /* ----- TRANSFORM CONTAINER ----- */
         #gbContainer {
             width: 340px;
-            height: 600px; 
+            height: 600px;
             transform-origin: center center;
-            transition: transform 0.05s linear;
         }
 
-        /* ----- GAMEBOY BODY ----- */
         .gb-body {
             background: var(--gb-body);
             width: 100%;
             height: 100%;
-            border-radius: 15px 15px 40px 15px;
-            box-shadow: 
-                inset 3px 3px 5px rgba(255,255,255,0.6),
-                inset -3px -3px 5px rgba(0,0,0,0.2),
-                15px 15px 40px rgba(0,0,0,0.6);
+            border-radius: 15px;
+            box-shadow: inset 3px 3px 5px rgba(255,255,255,0.6), inset -3px -3px 5px rgba(0,0,0,0.2);
             display: flex;
             flex-direction: column;
             align-items: center;
             padding-top: 25px;
-            box-sizing: border-box;
             position: relative;
-            border-right: 4px solid #999;
-            border-bottom: 4px solid #999;
         }
 
         .logo-text {
             position: absolute; top: 10px; left: 25px;
             color: #666; font-size: 10px; font-weight: bold;
             font-style: italic; letter-spacing: 1px;
-            text-shadow: 0 1px 0 rgba(255,255,255,0.4);
         }
 
-        /* SCREEN AREA (SQUARE) */
         .screen-lens {
-            background: #555; 
-            width: 290px; 
+            background: #555;
+            width: 290px;
             height: 260px;
-            border-radius: 10px 10px 40px 10px; 
+            border-radius: 10px 10px 40px 10px;
             position: relative;
             display: flex; justify-content: center; align-items: center;
-            box-shadow: inset 0 0 15px rgba(0,0,0,0.8); 
-            margin-bottom: 10px; 
+            box-shadow: inset 0 0 15px rgba(0,0,0,0.8);
+            margin-bottom: 10px;
         }
 
         .screen-cover {
-            width: 220px; 
-            height: 220px; 
+            width: 220px;
+            height: 220px;
             position: relative;
-            overflow: hidden; 
+            overflow: hidden;
             background: #000;
             border: 2px solid #333;
         }
 
-        /* CANVAS */
         canvas {
-            display: block; 
-            width: 100%; 
+            display: block;
+            width: 100%;
             height: 100%;
-            background-color: var(--gb-screen-bg); 
-            image-rendering: pixelated; 
-            box-sizing: border-box;
-            transition: opacity 0.1s;
+            background-color: var(--gb-screen-bg);
+            image-rendering: pixelated;
         }
 
         .scanlines {
@@ -112,69 +92,46 @@
         #toast {
             position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
             background: rgba(0,0,0,0.8); color: #fff; padding: 8px 12px;
-            font-size: 10px; display: none; pointer-events: none; white-space: nowrap; border-radius: 4px;
+            font-size: 10px; display: none; pointer-events: none; border-radius: 4px;
             font-family: var(--font-main); border: 1px solid #fff; text-transform: uppercase; z-index: 10;
         }
 
-        /* ----- PREVIEW OVERLAY ----- */
+        /* PREVIEW OVERLAY */
         #previewContainer {
-            position: absolute;
-            top: 50%; left: 50%; transform: translate(-50%, -50%);
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
             width: 220px; height: 220px;
-            background: #000;
-            z-index: 20;
-            display: none; 
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            font-family: sans-serif;
-            color: white;
-            padding: 0;
-            box-sizing: border-box;
-            background-color: #222;
+            background: #000; z-index: 20; display: none;
+            flex-direction: column; justify-content: center; align-items: center;
         }
 
         #previewMediaImg, #previewMediaVideo {
-            max-width: 100%; max-height: 100%;
-            object-fit: contain;
-            display: none;
-            image-rendering: pixelated;
-            background-color: #000;
+            max-width: 100%; max-height: 100%; object-fit: contain;
+            display: none; image-rendering: pixelated; background-color: #000;
         }
 
         #previewControls {
             position: absolute; bottom: 5px; width: 100%;
             display: flex; justify-content: space-around;
             padding: 5px 0; background: rgba(0, 0, 0, 0.5);
-            font-family: var(--font-main);
         }
 
         #previewControls button {
             background: #cc3333; color: #fff; border: 2px solid #fff;
-            padding: 5px 10px; font-family: var(--font-main);
-            font-size: 8px; cursor: pointer;
-            box-shadow: 2px 2px 4px rgba(0,0,0,0.4);
-            text-transform: uppercase;
+            padding: 5px 10px; font-family: var(--font-main); font-size: 8px;
+            cursor: pointer; box-shadow: 2px 2px 4px rgba(0,0,0,0.4);
         }
-
-        #previewControls button:active {
-            transform: translate(1px, 1px);
-            box-shadow: inset 1px 1px 3px rgba(0,0,0,0.6);
-        }
+        #previewControls button:active { transform: translate(1px, 1px); box-shadow: inset 1px 1px 3px rgba(0,0,0,0.6); }
 
         /* CONTROLS */
-        .controls { width: 100%; height: 250px; position: relative; } 
+        .controls { width: 100%; height: 250px; position: relative; }
 
-        .dpad-area { position: absolute; top: 10px; left: 45px; width: 100px; height: 100px; } 
-        .cross { background: #222; position: absolute; border-radius: 4px; box-shadow: 2px 2px 5px rgba(0,0,0,0.4); pointer-events: none; transition: transform 0.05s ease, box-shadow 0.05s ease; }
-        .c-h { width: 90px; height: 30px; top: 30px; left: 0; }
-        .c-v { width: 30px; height: 90px; top: 0; left: 30px; }
-        .c-c { width: 30px; height: 30px; top: 30px; left: 30px; background:none; z-index: 2; box-shadow:inset 2px 2px 5px rgba(0,0,0,0.5); border-radius: 50%; }
+        .dpad-area { position: absolute; top: 10px; left: 45px; width: 100px; height: 100px; }
+        .cross { background: #222; position: absolute; border-radius: 4px; box-shadow: 2px 2px 5px rgba(0,0,0,0.4); pointer-events: none; transition: transform 0.05s, box-shadow 0.05s; }
+        .c-h { width: 90px; height: 30px; top: 30px; left: 0; } .c-v { width: 30px; height: 90px; top: 0; left: 30px; }
+        .c-c { width: 30px; height: 30px; top: 30px; left: 30px; z-index: 2; border-radius: 50%; }
         .d-btn { position: absolute; z-index: 10; cursor: pointer; -webkit-tap-highlight-color: transparent; }
-        .d-up { width: 40px; height: 45px; top: -10px; left: 25px; }
-        .d-down { width: 40px; height: 45px; bottom: -10px; left: 25px; }
-        .d-left { width: 45px; height: 40px; top: 25px; left: -10px; }
-        .d-right { width: 45px; height: 40px; top: 25px; right: -10px; }
+        .d-up { width: 40px; height: 45px; top: -10px; left: 25px; } .d-down { width: 40px; height: 45px; bottom: -10px; left: 25px; }
+        .d-left { width: 45px; height: 40px; top: 25px; left: -10px; } .d-right { width: 45px; height: 40px; top: 25px; right: -10px; }
         
         .d-up:active ~ .cross.c-v { transform: translateY(-1px); box-shadow: inset 1px 1px 3px rgba(0,0,0,0.5); }
         .d-down:active ~ .cross.c-v { transform: translateY(1px); box-shadow: inset 1px 1px 3px rgba(0,0,0,0.5); }
@@ -183,50 +140,33 @@
         .d-btn:active ~ .cross.c-c { box-shadow: inset 2px 2px 5px rgba(0,0,0,0.8); }
 
         .ab-area { position: absolute; top: 10px; right: 25px; width: 130px; height: 60px; transform: rotate(-25deg); display: flex; gap: 15px; align-items: flex-end; }
-        .btn-wrapper-ab { display: flex; flex-direction: column; align-items: center; position: relative; }
+        .btn-wrapper-ab { display: flex; flex-direction: column; align-items: center; }
         .btn-round { 
             width: 45px; height: 45px; background: #cc3333; border-radius: 50%; 
             box-shadow: 0px 4px 6px rgba(0,0,0,0.6), inset 0px 1px 1px rgba(255,255,255,0.4);
             display: flex; justify-content: center; align-items: center; font-size: 10px; color: rgba(0,0,0,0.2); 
-            cursor: pointer; position: relative; transition: transform 0.05s ease, box-shadow 0.05s ease;
+            cursor: pointer; transition: transform 0.05s, box-shadow 0.05s;
         }
         .btn-round:active { transform: translate(1px, 1px); box-shadow: inset 0 0 8px rgba(0,0,0,0.8), 0 0 2px rgba(0,0,0,0.2); }
         .btn-round.pressing { background: #ff5555; box-shadow: 0 0 10px #ff0000; }
 
-        .meta-area { position: absolute; bottom: 80px; left: 50%; transform: translateX(-50%); display: flex; gap: 25px; } 
-        .btn-wrapper { display: flex; flex-direction: column; align-items: center; position: relative; }
+        .meta-area { position: absolute; bottom: 80px; left: 50%; transform: translateX(-50%); display: flex; gap: 25px; }
+        .btn-wrapper { display: flex; flex-direction: column; align-items: center; }
         .btn-oval { 
             width: 50px; height: 12px; background: #666; border-radius: 10px; transform: rotate(-25deg); 
-            box-shadow: 1px 1px 3px rgba(0,0,0,0.4); cursor: pointer; position: relative; 
-            transition: transform 0.05s ease, box-shadow 0.05s ease;
+            box-shadow: 1px 1px 3px rgba(0,0,0,0.4); cursor: pointer; transition: transform 0.05s, box-shadow 0.05s;
         }
         .btn-oval:active { transform: rotate(-25deg) translate(1px, 1px); box-shadow: inset 1px 1px 5px rgba(0,0,0,0.7); }
         .meta-label { margin-top: 8px; font-size: 8px; color: #444; font-weight: bold; letter-spacing: 1px; transform: rotate(-25deg); }
 
-        .zoom-integrator {
-            position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%); 
-            width: 240px; height: 60px; background: transparent;
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-        }
-        .zoom-label { font-size: 8px; color: #666; letter-spacing: 2px; margin-bottom: 5px; text-shadow: 1px 1px 0 rgba(255,255,255,0.5); font-weight: bold; }
-        .slider-container {
-            display: flex; align-items: center; gap: 10px; background: #b6b6b6; padding: 5px 15px;
-            border-radius: 30px; box-shadow: inset 2px 2px 5px rgba(0,0,0,0.3), inset -1px -1px 2px rgba(255,255,255,0.5); border-bottom: 1px solid rgba(255,255,255,0.5);
-        }
+        .zoom-integrator { position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%); width: 240px; height: 60px; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        .zoom-label { font-size: 8px; color: #666; letter-spacing: 2px; margin-bottom: 5px; font-weight: bold; }
+        .slider-container { display: flex; align-items: center; gap: 10px; background: #b6b6b6; padding: 5px 15px; border-radius: 30px; box-shadow: inset 2px 2px 5px rgba(0,0,0,0.3), inset -1px -1px 2px rgba(255,255,255,0.5); }
         input[type=range] { -webkit-appearance: none; width: 140px; background: transparent; }
         input[type=range]:focus { outline: none; }
         input[type=range]::-webkit-slider-runnable-track { width: 100%; height: 6px; cursor: pointer; background: #333; border-radius: 3px; box-shadow: inset 1px 1px 2px rgba(0,0,0,0.8); }
-        input[type=range]::-webkit-slider-thumb {
-            height: 18px; width: 28px; border-radius: 4px; background: #555; cursor: pointer; -webkit-appearance: none; margin-top: -6px;
-            box-shadow: inset 1px 1px 1px rgba(255,255,255,0.3), inset -1px -1px 1px rgba(0,0,0,0.5), 2px 2px 4px rgba(0,0,0,0.5);
-            background-image: linear-gradient(90deg, transparent 50%, rgba(0,0,0,0.2) 50%); background-size: 4px 100%;
-        }
-        #btnResetZoom, #btnReload {
-            width: 20px; height: 20px; border-radius: 50%; background: #888; border: none;
-            box-shadow: 2px 2px 4px rgba(0,0,0,0.4), inset 1px 1px 2px rgba(255,255,255,0.4); cursor: pointer; font-size: 0; position: relative;
-            transition: transform 0.05s ease, box-shadow 0.05s ease;
-            margin-left: 5px;
-        }
+        input[type=range]::-webkit-slider-thumb { height: 18px; width: 28px; border-radius: 4px; background: #555; cursor: pointer; -webkit-appearance: none; margin-top: -6px; box-shadow: inset 1px 1px 1px rgba(255,255,255,0.3); }
+        #btnResetZoom, #btnReload { width: 20px; height: 20px; border-radius: 50%; background: #888; border: none; box-shadow: 2px 2px 4px rgba(0,0,0,0.4); cursor: pointer; transition: transform 0.05s; margin-left: 5px; }
         #btnResetZoom:active, #btnReload:active { transform: scale(0.9); box-shadow: inset 0 0 8px rgba(0,0,0,0.6); }
         #btnResetZoom::after { content: "R"; font-size: 8px; color: #333; font-weight: bold; position: absolute; top:50%; left:50%; transform:translate(-50%,-50%); }
         #btnReload::after { content: "↻"; font-size: 14px; color: #333; font-weight: bold; position: absolute; top:50%; left:50%; transform:translate(-50%,-50%); line-height: 1; }
@@ -237,11 +177,9 @@
     </style>
 </head>
 <body>
-
     <div id="gbContainer">
         <div class="gb-body">
             <div class="logo-text">NINTENDO GAME BOY™</div>
-            
             <div class="screen-lens">
                 <div class="battery-led" id="led"></div>
                 <div class="screen-cover">
@@ -249,8 +187,8 @@
                     <div class="scanlines"></div>
                     <div id="toast">BOOTING...</div>
                     <div id="previewContainer">
-                        <img id="previewMediaImg" style="display:none; max-width: 100%; max-height: 100%; object-fit: contain; image-rendering: pixelated;">
-                        <video id="previewMediaVideo" controls autoplay loop style="display:none; max-width: 100%; max-height: 100%; object-fit: contain; image-rendering: pixelated;"></video>
+                        <img id="previewMediaImg">
+                        <video id="previewMediaVideo" controls autoplay loop></video>
                         <div id="previewControls">
                             <button id="btnCancel">CANCEL</button>
                             <button id="btnSave">SAVE TO DEVICE</button>
@@ -258,7 +196,6 @@
                     </div>
                 </div>
             </div>
-
             <div class="controls">
                 <div class="dpad-area">
                     <div class="cross c-h"></div><div class="cross c-v"></div><div class="cross c-c"></div>
@@ -284,7 +221,6 @@
             </div>
         </div>
     </div>
-
     <video id="video" autoplay playsinline muted></video>
 
     <script>
@@ -294,16 +230,14 @@
         const btnReload = document.getElementById('btnReload'); 
         
         function autoFitScreen() {
-            const baseW = 340; const baseH = 600;
+            const baseH = 600;
             const s = window.innerHeight / baseH; 
             container.style.transform = `scale(${s})`;
         }
         window.addEventListener('load', autoFitScreen); window.addEventListener('resize', autoFitScreen);
 
-        const GB_RES = 135; 
-        const FINAL_RES = 1080;
+        const GB_RES = 135; const FINAL_RES = 1080;
         const config = { paletteIdx: 0, frameIdx: 0, brightness: 0, contrast: 2, camFacing: 'environment', zoomLevel: 1.0, locationName: "SHIBUYA, TOKYO" }; 
-
         const palettes = [
             { name: "CLASSIC GREEN", colors: [[15,56,15], [48,98,48], [139,172,15], [155,188,15]], border: "#306230" },
             { name: "GREY SCALE", colors: [[20,20,20], [80,80,80], [160,160,160], [240,240,240]], border: "#555" },
@@ -328,14 +262,12 @@
         const previewMediaVideo = document.getElementById('previewMediaVideo');
         const btnSave = document.getElementById('btnSave');
         const btnCancel = document.getElementById('btnCancel');
-        let currentMediaBlob = null;
-        let currentMediaExt = null;
+        let currentMediaBlob = null, currentMediaExt = null;
         
         let isRecording = false, mediaRecorder, recordedChunks = [], stream = null, longPressTimer, isLongPress = false;
 
         let recMimeType = 'video/webm'; let recExt = 'webm';
         if (MediaRecorder.isTypeSupported('video/mp4')) { recMimeType = 'video/mp4'; recExt = 'mp4'; }
-        else if (MediaRecorder.isTypeSupported('video/mp4;codecs=h264')) { recMimeType = 'video/mp4;codecs=h264'; recExt = 'mp4'; }
 
         async function initCamera() {
             if (stream) stream.getTracks().forEach(t => t.stop());
@@ -343,9 +275,9 @@
                 stream = await navigator.mediaDevices.getUserMedia({ video: { width: {ideal: 1080}, height: {ideal: 1080}, facingMode: config.camFacing }, audio: false });
                 video.srcObject = stream;
                 video.onloadedmetadata = () => { video.play(); requestAnimationFrame(loop); };
-                
-                const recStream = canvas.captureStream(); // Auto FPS for performance
-                mediaRecorder = new MediaRecorder(recStream, { mimeType: recMimeType, videoBitsPerSecond: 2500000 }); // Lower bitrate for smoothness
+                // ラグ対策: 20fpsでキャプチャ
+                const recStream = canvas.captureStream(20);
+                mediaRecorder = new MediaRecorder(recStream, { mimeType: recMimeType, videoBitsPerSecond: 2500000 }); 
                 mediaRecorder.ondataavailable = e => { if(e.data.size>0) recordedChunks.push(e.data); };
                 mediaRecorder.onstop = showVideoPreview; 
             } catch(e) { console.error(e); showToast("CAMERA ERROR"); }
@@ -377,16 +309,14 @@
         function saveMedia() {
             if (!currentMediaBlob) return;
             const a = document.createElement('a'); const now = Date.now();
-            let url = '', filename = '';
-            if (currentMediaExt === 'png') { url = currentMediaBlob; filename = `gb-photo-${now}.png`; } 
-            else { url = URL.createObjectURL(currentMediaBlob); filename = `gb-video-${now}.${recExt}`; }
-            a.href = url; a.download = filename; a.click();
-            if (currentMediaExt !== 'png') URL.revokeObjectURL(url);
+            a.href = currentMediaExt === 'png' ? currentMediaBlob : URL.createObjectURL(currentMediaBlob);
+            a.download = `gb-cam-${now}.${currentMediaExt}`;
+            a.click();
+            if (currentMediaExt !== 'png') URL.revokeObjectURL(a.href);
             hidePreview(); showToast("SAVED");
         }
         function hidePreview() {
             previewContainer.style.display = 'none'; previewMediaImg.src = ''; previewMediaVideo.src = '';
-            currentMediaBlob = null; currentMediaExt = null;
             if (previewMediaVideo.src) URL.revokeObjectURL(previewMediaVideo.src);
         }
         btnSave.addEventListener('click', saveMedia); btnCancel.addEventListener('click', hidePreview);
@@ -396,17 +326,29 @@
             setTimeout(() => { config.locationName = "SHIBUYA, TOKYO"; showToast("LOCATION READY"); }, 1000);
         }
 
-        // 共通描画関数: Video/Canvas更新用
+        // ★重要: 描画処理の最適化 (ラグ対策)
+        // タイムスタンプを使ってFPSを約20に制限し、処理負荷を下げる
+        let lastTime = 0;
+        const FPS_LIMIT = 20;
+        const FRAME_DELAY = 1000 / FPS_LIMIT;
+
+        function loop(timestamp) {
+            if (video.readyState === 4 && previewContainer.style.display !== 'flex') {
+                if (timestamp - lastTime >= FRAME_DELAY) {
+                    lastTime = timestamp;
+                    renderScene();
+                }
+            }
+            requestAnimationFrame(loop);
+        }
+
         function renderScene() {
             const vw = video.videoWidth, vh = video.videoHeight;
             const minDim = Math.min(vw, vh);
-            const zoomFactor = 1.0 / config.zoomLevel; 
-            let cropDim = Math.min(minDim, minDim * zoomFactor); 
-            let sx = Math.max(0, (vw - cropDim) / 2);
-            let sy = Math.max(0, (vh - cropDim) / 2);
-            if (sx + cropDim > vw) cropDim = vw - sx; if (sy + cropDim > vh) cropDim = vh - sy;
-            
-            // 1. Offscreen draw (Video -> Pixel Processing)
+            const cropDim = Math.min(minDim, minDim * (1.0 / config.zoomLevel)); 
+            let sx = (vw - cropDim) / 2, sy = (vh - cropDim) / 2;
+
+            // 1. 低解像度処理 (135x135)
             offCtx.drawImage(video, sx, sy, cropDim, cropDim, 0, 0, GB_RES, GB_RES);
             
             const is16Color = palettes[config.paletteIdx].name === "16 COLOR";
@@ -414,60 +356,65 @@
             const d = imgData.data;
             const cF = (259*(config.contrast*10+255))/(255*(259-config.contrast*10));
             const bV = config.brightness*10;
-            const Q_MAX = 3, Q_FACTOR = 85; // 16 Color constants
+            const Q_MAX = 3, Q_FACTOR = 85; // 16色用定数
 
-            let x = 0, y = 0;
             for(let i=0; i<d.length; i+=4) {
                 if (is16Color) {
-                    let r = cF*(d[i]-128)+128+bV, g = cF*(d[i+1]-128)+128+bV, b = cF*(d[i+2]-128)+128+bV;
-                    d[i] = Math.min(255, Math.max(0, Math.round(r/255*Q_MAX)*Q_FACTOR));
-                    d[i+1] = Math.min(255, Math.max(0, Math.round(g/255*Q_MAX)*Q_FACTOR));
-                    d[i+2] = Math.min(255, Math.max(0, Math.round(b/255*Q_MAX)*Q_FACTOR));
+                    d[i] = Math.round((cF*(d[i]-128)+128+bV)/255*Q_MAX)*Q_FACTOR;
+                    d[i+1] = Math.round((cF*(d[i+1]-128)+128+bV)/255*Q_MAX)*Q_FACTOR;
+                    d[i+2] = Math.round((cF*(d[i+2]-128)+128+bV)/255*Q_MAX)*Q_FACTOR;
                 } else {
                     const pal = palettes[config.paletteIdx].colors;
+                    // 簡易ディザリング (Bayer Matrixの計算を簡略化)
+                    const x = (i/4)%GB_RES, y = Math.floor((i/4)/GB_RES);
                     let gray = 0.299*d[i] + 0.587*d[i+1] + 0.114*d[i+2];
                     gray = cF*(gray-128)+128+bV + (bayerMatrix[y%4][x%4]-8)*4;
-                    let idx = gray < 64 ? 0 : gray < 128 ? 1 : gray < 192 ? 2 : 3;
-                    if(gray<0) idx=0; if(gray>255) idx=3;
+                    let idx = gray<64?0:gray<128?1:gray<192?2:3;
+                    if(gray<0)idx=0; if(gray>255)idx=3;
                     d[i]=pal[idx][0]; d[i+1]=pal[idx][1]; d[i+2]=pal[idx][2];
                 }
-                x++; if(x>=GB_RES){ x=0; y++; }
             }
             offCtx.putImageData(imgData,0,0);
 
-            // 2. Main Canvas draw (Resize & Frame)
+            // 2. メインキャンバス描画 (1080p)
             ctx.imageSmoothingEnabled = false;
             ctx.drawImage(offCanvas, 0, 0, FINAL_RES, FINAL_RES);
+
+            // 3. フレーム合成 (必ず最後に実行)
             drawFrame(palettes[config.paletteIdx].colors, ctx);
             
             canvas.parentElement.querySelector('.scanlines').style.opacity = is16Color ? 0.1 : 0.4;
         }
 
-        function loop() {
-            if (video.readyState === 4) {
-                if (previewContainer.style.display !== 'flex') {
-                    renderScene(); // 常時描画
-                }
-            }
-            requestAnimationFrame(loop);
-        }
-
         function drawFrame(pal, ctx) {
             const type = frames[config.frameIdx]; 
-            const is16Color = palettes[config.paletteIdx].name === "16 COLOR";
-            const dk = pal.length > 0 && !is16Color ? `rgb(${pal[0].join(',')})` : '#000', 
-                  lt = pal.length > 0 && !is16Color ? `rgb(${pal[3].join(',')})` : '#FFF';
+            const is16 = palettes[config.paletteIdx].name === "16 COLOR";
+            const dk = !is16 ? `rgb(${pal[0].join(',')})` : '#000';
+            const lt = !is16 ? `rgb(${pal[3].join(',')})` : '#FFF';
             ctx.fillStyle = dk; const bs = 80; 
 
-            if (type==="FILM") { ctx.fillRect(0,0,1080,60); ctx.fillRect(0,1020,1080,60); ctx.fillRect(0,0,60,1080); ctx.fillRect(1020,0,60,1080); ctx.fillStyle=lt; ctx.font="40px 'Press Start 2P'"; ctx.fillText("POCKET CAM",80,45); } 
+            if (type==="FILM") { 
+                ctx.fillRect(0,0,1080,60); ctx.fillRect(0,1020,1080,60); 
+                ctx.fillRect(0,0,60,1080); ctx.fillRect(1020,0,60,1080); 
+                ctx.fillStyle=lt; ctx.font="40px 'Press Start 2P'"; ctx.fillText("POCKET CAM",80,45); 
+            } 
             else if (type==="SCANLINE") { ctx.fillStyle="rgba(0,0,0,0.2)"; for(let y=0;y<1080;y+=8) ctx.fillRect(0,y,1080,4); } 
-            else if (type==="DATETIME") { const now=new Date(); const dStr=`${now.getFullYear()}/${(now.getMonth()+1).toString().padStart(2,'0')}/${now.getDate().toString().padStart(2,'0')}`; const tStr=`${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}`; ctx.fillStyle=dk; ctx.fillRect(0,0,1080,80); ctx.fillStyle=lt; ctx.font="40px 'Press Start 2P'"; ctx.fillText(dStr,80,40); ctx.fillText(tStr,80,75); }
+            else if (type==="DATETIME") {
+                const now=new Date(); const dStr=`${now.getFullYear()}/${(now.getMonth()+1).toString().padStart(2,'0')}/${now.getDate().toString().padStart(2,'0')}`; 
+                const tStr=`${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}`; 
+                ctx.fillStyle=dk; ctx.fillRect(0,0,1080,80); ctx.fillStyle=lt; ctx.font="40px 'Press Start 2P'"; ctx.fillText(dStr,80,40); ctx.fillText(tStr,80,75); 
+            }
             else if (type==="WHITE BORDER") { ctx.fillStyle="white"; ctx.fillRect(0,0,1080,bs); ctx.fillRect(0,1080-bs,1080,bs); ctx.fillRect(0,bs,bs,1080-2*bs); ctx.fillRect(1080-bs,bs,bs,1080-2*bs); }
             else if (type==="LOCATION TAG") { ctx.fillStyle=dk; ctx.fillRect(0,0,1080,80); ctx.fillStyle=lt; ctx.font="40px 'Press Start 2P'"; ctx.fillText(config.locationName,80,55); }
         }
 
         function showToast(msg) { toast.innerText = msg; toast.style.display = 'block'; clearTimeout(toast.timer); toast.timer = setTimeout(() => toast.style.display = 'none', 1000); }
-        function handleDpad(key) { if (previewContainer.style.display === 'flex') return; if (key==='up') config.brightness=Math.min(5,config.brightness+1); if (key==='down') config.brightness=Math.max(-5,config.brightness-1); if (key==='right') config.contrast=Math.min(5,config.contrast+1); if (key==='left') config.contrast=Math.max(-5,config.contrast-1); if (key==='up'||key==='down') showToast(`BRIGHT: ${config.brightness}`); if (key==='left'||key==='right') showToast(`CONTRAST: ${config.contrast}`); }
+        function handleDpad(key) {
+            if (previewContainer.style.display === 'flex') return;
+            if (key==='up') config.brightness=Math.min(5,config.brightness+1); if (key==='down') config.brightness=Math.max(-5,config.brightness-1); 
+            if (key==='right') config.contrast=Math.min(5,config.contrast+1); if (key==='left') config.contrast=Math.max(-5,config.contrast-1); 
+            if (key==='up'||key==='down') showToast(`BRIGHT: ${config.brightness}`); else showToast(`CONTRAST: ${config.contrast}`); 
+        }
 
         document.getElementById('btnB').addEventListener('click', (e) => { e.preventDefault(); if (previewContainer.style.display==='flex'){ hidePreview(); return; } config.paletteIdx=(config.paletteIdx+1)%palettes.length; showToast(palettes[config.paletteIdx].name); });
         document.getElementById('btnSelect').addEventListener('click', (e) => { e.preventDefault(); if (previewContainer.style.display==='flex') return; config.frameIdx=(config.frameIdx+1)%frames.length; showToast(`FRAME: ${frames[config.frameIdx]}`); if(frames[config.frameIdx]==="LOCATION TAG") updateLocation(); });
@@ -475,12 +422,17 @@
 
         const btnA = document.getElementById('btnA');
         function startPressA(e) { e.preventDefault(); if (isRecording || previewContainer.style.display==='flex') return; isLongPress=false; btnA.classList.add('pressing'); longPressTimer=setTimeout(()=>{ isLongPress=true; mediaRecorder.start(); isRecording=true; led.classList.add('on'); showToast("REC 1080P"); }, 400); }
-        function endPressA(e) { e.preventDefault(); clearTimeout(longPressTimer); btnA.classList.remove('pressing'); if (previewContainer.style.display==='flex') { saveMedia(); return; } if (isLongPress) { if(isRecording){ mediaRecorder.stop(); isRecording=false; led.classList.remove('on'); } } else { 
-            // 静止画キャプチャ: renderSceneを呼んで確実に描画
-            renderScene(); 
-            const dataURL = canvas.toDataURL('image/png', 1.0); showImagePreview(dataURL); canvas.style.opacity=0; setTimeout(()=>canvas.style.opacity=1, 100); } isLongPress=false; }
+        function endPressA(e) { e.preventDefault(); clearTimeout(longPressTimer); btnA.classList.remove('pressing'); 
+            if (previewContainer.style.display==='flex') { saveMedia(); return; } 
+            if (isLongPress) { if(isRecording){ mediaRecorder.stop(); isRecording=false; led.classList.remove('on'); } } 
+            else { 
+                // ★ズレ修正: 常に現在のCanvas状態をそのまま保存 (再描画しない)
+                const dataURL = canvas.toDataURL('image/png', 1.0); 
+                showImagePreview(dataURL); canvas.style.opacity=0; setTimeout(()=>canvas.style.opacity=1, 100); 
+            } 
+            isLongPress=false; 
+        }
         btnA.addEventListener('mousedown', startPressA); btnA.addEventListener('touchstart', startPressA); btnA.addEventListener('mouseup', endPressA); btnA.addEventListener('touchend', endPressA);
-
         ['Up','Down','Left','Right'].forEach(d => document.getElementById('d'+d).addEventListener('click', (e)=>{ e.preventDefault(); handleDpad(d.toLowerCase()); }));
         
         updateLocation(); initCamera(); applyZoom(config.zoomLevel); showToast("READY (1080P)");
