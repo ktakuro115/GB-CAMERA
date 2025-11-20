@@ -1,8 +1,9 @@
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=no">
-    <title>GB Camera V29 (Real Location)</title>
+    <title>GB Camera V30 (Fix Location)</title>
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -226,7 +227,6 @@
             line-height: 1; display: block;
         }
 
-        /* 丸い回転矢印アイコン */
         #btnReload::after { 
             content: ""; 
             position: absolute; 
@@ -335,8 +335,8 @@
         const REC_RES = 540;    
         
         const FPS = 24;
-        // 初期地は空にしておく
-        const config = { paletteIdx: 0, frameIdx: 0, brightness: 0, contrast: 2, camFacing: 'environment', zoomLevel: 1.0, locationName: "GETTING LOCATION..." };
+        // 修正: 初期値を空文字列にして、ロード中であることを明確にする
+        const config = { paletteIdx: 0, frameIdx: 0, brightness: 0, contrast: 2, camFacing: 'environment', zoomLevel: 1.0, locationName: "" };
         
         const palettes = [
             { name: "CLASSIC GREEN", colors: [[15,56,15], [48,98,48], [139,172,15], [155,188,15]], border: "#306230" },
@@ -580,9 +580,11 @@
                 ctx.fillRect(0, 0, size, bs); ctx.fillRect(0, size-bs, size, bs);
                 ctx.fillRect(0, bs, bs, size-2*bs); ctx.fillRect(size-bs, bs, bs, size-2*bs);
             } else if (type === "LOCATION TAG") {
-                ctx.fillStyle = dk; ctx.fillRect(0, 0, size, 80 * s);
-                ctx.fillStyle = lt; ctx.font = `${fontSize}px 'Press Start 2P'`; 
-                ctx.fillText(config.locationName, 80 * s, 55 * s);
+                if (config.locationName) { // 修正: テキストがある時だけ描画
+                    ctx.fillStyle = dk; ctx.fillRect(0, 0, size, 80 * s);
+                    ctx.fillStyle = lt; ctx.font = `${fontSize}px 'Press Start 2P'`; 
+                    ctx.fillText(config.locationName, 80 * s, 55 * s);
+                }
             }
         }
 
@@ -704,6 +706,14 @@
                 config.locationName = "GPS NOT SUPPORTED";
                 return;
             }
+            
+            // 修正: キャッシュを無効化して強制的に現在の位置を取りに行く
+            const options = {
+                enableHighAccuracy: true, // GPS優先
+                timeout: 10000,           // 10秒まで待つ
+                maximumAge: 0             // 0ms = キャッシュを使わない
+            };
+
             navigator.geolocation.getCurrentPosition(async (pos) => {
                 const { latitude, longitude } = pos.coords;
                 try {
@@ -719,7 +729,7 @@
             }, (err) => {
                 console.error(err);
                 config.locationName = "GPS ERROR";
-            });
+            }, options);
         }
 
         initCamera(); 
