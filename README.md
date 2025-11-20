@@ -2,7 +2,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
-    <title> ''</title>
+    <title>GB Camera V16 (1080p) - Full Screen</title>
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -31,8 +31,7 @@
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            /* 画面いっぱいに拡大するため、overflow-yをautoにするとスクロール可能になるが、
-               ここでは本体を固定してoverflow:hiddenを維持する */
+            /* 画面いっぱいに広げる設定を維持 */
             touch-action: none;
             user-select: none;
             -webkit-user-select: none;
@@ -170,6 +169,7 @@
             text-transform: uppercase;
         }
 
+        /* --- ボタンの凹みUIの核心部分 --- */
         #previewControls button:active {
             transform: translate(1px, 1px);
             box-shadow: inset 1px 1px 3px rgba(0,0,0,0.6);
@@ -209,12 +209,12 @@
             cursor: pointer; position: relative; -webkit-tap-highlight-color: transparent; 
             transition: transform 0.05s ease, box-shadow 0.05s ease;
         }
+        /* A/B ボタンの凹み効果 */
         .btn-round:active { 
             transform: translate(1px, 1px);
             box-shadow: inset 0 0 8px rgba(0,0,0,0.8), 0 0 2px rgba(0,0,0,0.2);
         }
         .btn-round.pressing { background: #ff5555; box-shadow: 0 0 10px #ff0000; }
-        .btn-label { margin-top: 5px; font-size: 12px; color: #444; font-weight: bold; font-family: var(--font-main); transform: rotate(25deg); }
 
         /* START/SELECT */
         .meta-area { position: absolute; bottom: 80px; left: 50%; transform: translateX(-50%); display: flex; gap: 25px; } 
@@ -224,6 +224,7 @@
             box-shadow: 1px 1px 3px rgba(0,0,0,0.4); cursor: pointer; position: relative; -webkit-tap-highlight-color: transparent; 
             transition: transform 0.05s ease, box-shadow 0.05s ease;
         }
+        /* START/SELECT ボタンの凹み効果 */
         .btn-oval:active { 
             transform: rotate(-25deg) translate(1px, 1px); 
             box-shadow: inset 1px 1px 5px rgba(0,0,0,0.7);
@@ -254,10 +255,12 @@
             box-shadow: 2px 2px 4px rgba(0,0,0,0.4), inset 1px 1px 2px rgba(255,255,255,0.4); cursor: pointer; font-size: 0; position: relative;
             transition: transform 0.05s ease, box-shadow 0.05s ease;
         }
+        /* Reset Zoom ボタンの凹み効果 */
         #btnResetZoom:active { 
             transform: scale(0.9);
             box-shadow: inset 0 0 8px rgba(0,0,0,0.6);
         }
+
         #btnResetZoom::after { content: "R"; font-size: 8px; color: #333; font-weight: bold; position: absolute; top:50%; left:50%; transform:translate(-50%,-50%); }
 
         .battery-led { position: absolute; left: 10px; top: 40%; width: 8px; height: 8px; background: #444; border-radius: 50%; transition: 0.1s; }
@@ -298,8 +301,8 @@
                     <div class="d-btn d-left" id="dLeft"></div><div class="d-btn d-right" id="dRight"></div>
                 </div>
                 <div class="ab-area">
-                    <div class="btn-wrapper-ab"><div class="btn-round" id="btnB">B</div><div class="btn-label">B</div></div>
-                    <div class="btn-wrapper-ab" style="margin-top:-20px;"><div class="btn-round" id="btnA">A</div><div class="btn-label">A</div></div>
+                    <div class="btn-wrapper-ab"><div class="btn-round" id="btnB">B</div></div>
+                    <div class="btn-wrapper-ab" style="margin-top:-20px;"><div class="btn-round" id="btnA">A</div></div>
                 </div>
                 
                 <div class="meta-area">
@@ -328,7 +331,7 @@
         
         function autoFitScreen() {
             const baseW = 340; const baseH = 600;
-            // 【★修正箇所★】画面の高さに合わせて本体を拡大 (画面いっぱいに広がる)
+            // 画面の高さに合わせて本体を拡大 (画面いっぱいに広がるように修正)
             const s = window.innerHeight / baseH; 
             container.style.transform = `scale(${s})`;
         }
@@ -338,7 +341,7 @@
         const GB_RES = 135; 
         const FINAL_RES = 1080;
 
-        const config = { paletteIdx: 0, frameIdx: 0, brightness: 0, contrast: 2, camFacing: 'environment', zoomLevel: 1.0 }; 
+        const config = { paletteIdx: 0, frameIdx: 0, brightness: 0, contrast: 2, camFacing: 'environment', zoomLevel: 1.0, locationName: "SHIBUYA, TOKYO" }; 
 
         const palettes = [
             { name: "CLASSIC GREEN", colors: [[15,56,15], [48,98,48], [139,172,15], [155,188,15]], border: "#306230" },
@@ -347,7 +350,8 @@
             { name: "CYBER BLUE", colors: [[0,20,40], [0,70,110], [0,140,190], [180,230,255]], border: "#004070" },
             { name: "16 COLOR", colors: [], border: "#000" } 
         ];
-        const frames = ["OFF", "FILM", "SCANLINE", "DATETIME", "WHITE BORDER"]; 
+        // フレーム順序を修正
+        const frames = ["OFF", "LOCATION TAG", "DATETIME", "FILM", "SCANLINE", "WHITE BORDER"]; 
         const bayerMatrix = [[0, 8, 2, 10],[12, 4, 14, 6],[3, 11, 1, 9],[15, 7, 13, 5]];
 
         const canvas = document.getElementById('gbCanvas');
@@ -467,6 +471,15 @@
         btnSave.addEventListener('click', saveMedia);
         btnCancel.addEventListener('click', hidePreview);
 
+        // --- LOCATION GETTER (Simplified/Fake for Demo) ---
+        function updateLocation() {
+            config.locationName = "GETTING LOCATION...";
+            setTimeout(() => {
+                config.locationName = "SHIBUYA, TOKYO"; 
+                showToast("LOCATION READY");
+            }, 1000);
+        }
+        
         // --- RENDERING LOOP ---
 
         function loop() {
@@ -578,7 +591,6 @@
                 ctx.fillStyle=lt; ctx.font = "40px 'Press Start 2P'"; ctx.fillText(dateStr, 80, 40);
                 ctx.fillText(timeStr, 80, 75);
             }
-            // 修正された WHITE BORDER フレーム
             else if (type==="WHITE BORDER") {
                 ctx.fillStyle="white"; 
                 // 外側の白い枠のみを描画
@@ -586,8 +598,14 @@
                 ctx.fillRect(0, 1080 - borderSize, 1080, borderSize); // 下
                 ctx.fillRect(0, borderSize, borderSize, 1080 - 2 * borderSize); // 左
                 ctx.fillRect(1080 - borderSize, borderSize, borderSize, 1080 - 2 * borderSize); // 右
+            }
+            else if (type==="LOCATION TAG") {
+                ctx.fillStyle=dk;
+                ctx.fillRect(0, 0, 1080, 80); // 上部の黒いバー
                 
-                // ★黒いラインの描画コードを削除★
+                ctx.fillStyle=lt; 
+                ctx.font = "40px 'Press Start 2P'"; 
+                ctx.fillText(config.locationName, 80, 55); 
             }
         }
 
@@ -603,10 +621,15 @@
             if (key === 'left' || key === 'right') showToast(`CONTRAST: ${config.contrast}`);
         }
 
-        // Bボタン: パレット切り替え
+        // Bボタン: パレット切り替え (通常時) / キャンセル (プレビュー時)
         document.getElementById('btnB').addEventListener('click', (e) => {
             e.preventDefault(); 
-            if (previewContainer.style.display === 'flex') return;
+            if (previewContainer.style.display === 'flex') {
+                // プレビュー時: キャンセル
+                hidePreview(); 
+                return;
+            }
+            // 通常時: パレット切り替え
             config.paletteIdx = (config.paletteIdx + 1) % palettes.length; 
             showToast(palettes[config.paletteIdx].name);
         });
@@ -615,7 +638,13 @@
         document.getElementById('btnSelect').addEventListener('click', (e) => {
             e.preventDefault(); 
             if (previewContainer.style.display === 'flex') return;
-            config.frameIdx = (config.frameIdx + 1) % frames.length; showToast(`FRAME: ${frames[config.frameIdx]}`);
+            config.frameIdx = (config.frameIdx + 1) % frames.length; 
+            showToast(`FRAME: ${frames[config.frameIdx]}`);
+            
+            // LOCATION TAGが選択されたら、地名取得を試みる
+            if (frames[config.frameIdx] === "LOCATION TAG") {
+                updateLocation();
+            }
         });
 
         // STARTボタン: カメラ切り替え
@@ -637,11 +666,18 @@
         }
         function endPressA(e) {
             e.preventDefault(); clearTimeout(longPressTimer); btnA.classList.remove('pressing');
-            if (previewContainer.style.display === 'flex') return;
+            
+            if (previewContainer.style.display === 'flex') {
+                // プレビュー時: 保存
+                saveMedia();
+                return;
+            }
 
             if (isLongPress) {
+                // 通常時 (長押し): 録画停止 -> プレビュー表示
                 if(isRecording) { mediaRecorder.stop(); isRecording = false; led.classList.remove('on'); }
             } else {
+                // 通常時 (短押し): 写真撮影 -> プレビュー表示
                 const dataURL = canvas.toDataURL('image/png', 1.0);
                 showImagePreview(dataURL);
                 canvas.style.opacity = 0; setTimeout(() => canvas.style.opacity = 1, 100);
@@ -653,6 +689,8 @@
 
         ['Up','Down','Left','Right'].forEach(d => document.getElementById('d'+d).addEventListener('click', (e)=>{ e.preventDefault(); handleDpad(d.toLowerCase()); }));
         
+        // 初期位置情報取得を試みる
+        updateLocation(); 
         initCamera(); 
         applyZoom(config.zoomLevel); 
         showToast("READY (1080P)");
