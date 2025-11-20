@@ -2,7 +2,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
-    <title>GB Camera V16 (1080p) - Final</title>
+    <title>GB Camera V16 (1080p) - Final Stable</title>
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -508,10 +508,12 @@
             }, 1000);
         }
 
-        function drawCurrentFrameOnCanvas() {
+        function drawCurrentFrameOnCanvas(useCurrentZoom = true) {
+            const currentZoom = useCurrentZoom ? config.zoomLevel : 1.0; // 撮影時は1.0を使用
+            
             const vw = video.videoWidth, vh = video.videoHeight;
             const minDim = Math.min(vw, vh);
-            const zoomFactor = 1.0 / config.zoomLevel; 
+            const zoomFactor = 1.0 / currentZoom; 
             let cropDim = Math.min(minDim, minDim * zoomFactor); 
             let sx = Math.max(0, (vw - cropDim) / 2);
             let sy = Math.max(0, (vh - cropDim) / 2);
@@ -555,7 +557,7 @@
             }
             offCtx.putImageData(imgData,0,0);
 
-            // 2. メインキャンバスをクリアして拡大描画
+            // 2. メインキャンバスに拡大描画
             ctx.clearRect(0, 0, FINAL_RES, FINAL_RES); // キャプチャ前のキャンバスクリアを明示
             ctx.imageSmoothingEnabled = false;
             ctx.drawImage(offCanvas, 0, 0, FINAL_RES, FINAL_RES);
@@ -571,8 +573,8 @@
                     return;
                 }
                 
-                // 動画ストリームとプレビューにフレームを反映させるために毎回描画
-                drawCurrentFrameOnCanvas(); 
+                // loop時は現在のズームレベルを使用して描画
+                drawCurrentFrameOnCanvas(true); 
 
                 const is16Color = palettes[config.paletteIdx].name === "16 COLOR";
                 canvas.parentElement.querySelector('.scanlines').style.opacity = is16Color ? 0.1 : 0.4;
@@ -685,7 +687,7 @@
                 if(isRecording) { mediaRecorder.stop(); isRecording = false; led.classList.remove('on'); }
             } else {
                 // 静止画キャプチャの安定化処理
-                drawCurrentFrameOnCanvas(); 
+                drawCurrentFrameOnCanvas(false); // ズームを無視して1.0倍で描画
                 const dataURL = canvas.toDataURL('image/png', 1.0);
                 showImagePreview(dataURL);
                 canvas.style.opacity = 0; setTimeout(() => canvas.style.opacity = 1, 100);
