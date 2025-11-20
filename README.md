@@ -507,7 +507,7 @@
                 showToast("LOCATION READY");
             }, 1000);
         }
-        
+
         function drawCurrentFrameOnCanvas() {
             const vw = video.videoWidth, vh = video.videoHeight;
             const minDim = Math.min(vw, vh);
@@ -567,7 +567,8 @@
                     return;
                 }
                 
-                drawCurrentFrameOnCanvas(); // 常にビデオとフレームを描画
+                // 動画ストリームとプレビューにフレームを反映させるために毎回描画
+                drawCurrentFrameOnCanvas(); 
 
                 const is16Color = palettes[config.paletteIdx].name === "16 COLOR";
                 canvas.parentElement.querySelector('.scanlines').style.opacity = is16Color ? 0.1 : 0.4;
