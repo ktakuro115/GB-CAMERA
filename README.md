@@ -2,7 +2,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=no">
-    <title>GB Camera V18 (Rec Fix)</title>
+    <title>GB Camera V19 (Layer Fix)</title>
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -84,6 +84,8 @@
             overflow: hidden; 
             background: #000;
             border: 2px solid #333;
+            /* スタッキングコンテキストを作成 */
+            z-index: 1;
         }
 
         canvas {
@@ -94,33 +96,41 @@
             image-rendering: pixelated; 
         }
 
-        /* ★修正: display:noneだと描画更新が止まるため、透明にして背面に隠す */
+        /* 表示用キャンバス：手前に表示 */
+        #gbCanvas {
+            position: relative;
+            z-index: 10;
+        }
+
+        /* 録画用キャンバス：真裏に配置 (display:noneやopacity:0は避ける) */
         #recCanvas { 
             position: absolute;
             top: 0;
             left: 0;
-            opacity: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1; /* gbCanvasの下に配置 */
             pointer-events: none;
-            z-index: -1;
+            background-color: var(--gb-screen-bg);
         }
 
         .scanlines {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             background: linear-gradient(to bottom, rgba(0,0,0,0), rgba(0,0,0,0.1) 50%, rgba(0,0,0,0) 50%);
-            background-size: 100% 4px; pointer-events: none; z-index: 5; opacity: 0.4;
+            background-size: 100% 4px; pointer-events: none; z-index: 15; opacity: 0.4;
         }
 
         #toast {
             position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
             background: rgba(0,0,0,0.8); color: #fff; padding: 8px 12px;
             font-size: 10px; display: none; pointer-events: none; white-space: nowrap; border-radius: 4px;
-            font-family: var(--font-main); border: 1px solid #fff; text-transform: uppercase; z-index: 10;
+            font-family: var(--font-main); border: 1px solid #fff; text-transform: uppercase; z-index: 25;
         }
 
         /* PREVIEW OVERLAY */
         #previewContainer {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background: #222; z-index: 20; display: none; 
+            background: #222; z-index: 30; display: none; 
             flex-direction: column; justify-content: center; align-items: center;
         }
         #previewMediaImg, #previewMediaVideo {
@@ -286,7 +296,7 @@
         const gbCanvas = document.getElementById('gbCanvas');
         const gbCtx = gbCanvas.getContext('2d', { willReadFrequently: true });
         
-        // Recording Canvas (Hidden but rendered)
+        // Recording Canvas (Positioned behind main canvas)
         const recCanvas = document.getElementById('recCanvas');
         const recCtx = recCanvas.getContext('2d', { willReadFrequently: true });
 
@@ -342,7 +352,6 @@
                     console.warn("MediaRecorder not supported properly");
                     showToast("REC NOT SUPPORTED");
                 } else {
-                    // ★修正: ストリームの初期化
                     const recStream = recCanvas.captureStream(FPS);
                     
                     mediaRecorder = new MediaRecorder(recStream, { 
@@ -383,7 +392,11 @@
             
             previewMediaVideo.src = url; previewMediaVideo.style.display = 'block';
             previewMediaImg.style.display = 'none'; previewContainer.style.display = 'flex';
-            previewMediaVideo.play(); // 自動再生
+            
+            // ミュート解除して再生
+            previewMediaVideo.muted = false; 
+            previewMediaVideo.volume = 1.0;
+            previewMediaVideo.play().catch(e => console.log("Auto-play blocked", e));
             
             const ext = recMimeType.includes('mp4') ? 'mp4' : 'webm';
             currentMediaBlob = blob; currentMediaExt = ext; 
@@ -513,7 +526,6 @@
                 if (timestamp - lastTime >= 1000/FPS) {
                     if(processPixels()) {
                         renderFrame(gbCtx, DISP_RES);
-                        // 録画中は見えないキャンバスも更新
                         if (isRecording) {
                             renderFrame(recCtx, REC_RES);
                         }
@@ -630,7 +642,7 @@
 
         autoFitScreen();
         initCamera(); 
-        showToast("READY (V18 REC FIX)");
+        // READY表示は削除済み
     </script>
 </body>
 </html>
