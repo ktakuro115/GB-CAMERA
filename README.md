@@ -2,7 +2,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=no">
-    <title>GB Camera V16 (1080p) - Final Polished</title>
+    <title>GB Camera V16 (1080p) - Final</title>
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -18,6 +18,10 @@
 
         body {
             background-color: #151515;
+            background-image: 
+                linear-gradient(rgba(50, 50, 50, 0.5) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(50, 50, 50, 0.5) 1px, transparent 1px);
+            background-size: 30px 30px;
             font-family: var(--font-main);
             height: 100vh;
             width: 100vw;
@@ -103,7 +107,7 @@
             font-family: var(--font-main); border: 1px solid #fff; text-transform: uppercase; z-index: 10;
         }
 
-        /* PREVIEW OVERLAY (修正: ボタンサイズ調整) */
+        /* PREVIEW OVERLAY */
         #previewContainer {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             background: #222; z-index: 20; display: none; 
@@ -114,12 +118,11 @@
         }
         #previewControls {
             position: absolute; bottom: 10px; width: 100%;
-            display: flex; justify-content: center; gap: 15px; /* 間隔調整 */
+            display: flex; justify-content: center; gap: 15px;
         }
         #previewControls button {
             background: #cc3333; color: #fff; border: 2px solid #fff; 
-            padding: 6px 10px; /* サイズ縮小 */
-            font-family: var(--font-main); font-size: 8px; /* 文字サイズ縮小 */
+            padding: 6px 10px; font-family: var(--font-main); font-size: 8px; 
             cursor: pointer; box-shadow: 2px 2px 4px rgba(0,0,0,0.5);
         }
         #previewControls button:active { transform: translate(1px, 1px); box-shadow: inset 1px 1px 3px rgba(0,0,0,0.6); }
@@ -154,18 +157,18 @@
         .btn-wrapper { display: flex; flex-direction: column; align-items: center; }
         .btn-oval { width: 50px; height: 12px; background: #666; border-radius: 10px; transform: rotate(-25deg); box-shadow: 1px 1px 3px rgba(0,0,0,0.4); cursor: pointer; transition: transform 0.05s, box-shadow 0.05s; }
         .btn-oval:active { transform: rotate(-25deg) translate(1px, 1px); box-shadow: inset 1px 1px 5px rgba(0,0,0,0.7); }
-        .meta-label { margin-top: 8px; font-size: 8px; color: #444; font-weight: bold; letter-spacing: 1px; transform: rotate(-25deg); }
+        /* ★修正: ラベルの位置を右にずらしてバランス調整 */
+        .meta-label { margin-top: 8px; margin-left: 5px; font-size: 8px; color: #444; font-weight: bold; letter-spacing: 1px; transform: rotate(-25deg); }
 
         .zoom-integrator { position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%); width: 240px; height: 60px; display: flex; flex-direction: column; align-items: center; justify-content: center; }
         .zoom-label { font-size: 8px; color: #666; letter-spacing: 2px; margin-bottom: 5px; text-shadow: 1px 1px 0 rgba(255,255,255,0.5); font-weight: bold; }
         .slider-container { display: flex; align-items: center; gap: 10px; background: #b6b6b6; padding: 5px 15px; border-radius: 30px; box-shadow: inset 2px 2px 5px rgba(0,0,0,0.3), inset -1px -1px 2px rgba(255,255,255,0.5); }
         
-        /* 修正: ズームとリロードのアイコン位置調整 */
         #btnResetZoom, #btnReload { 
             width: 20px; height: 20px; border-radius: 50%; background: #888; border: none; 
             box-shadow: 2px 2px 4px rgba(0,0,0,0.4), inset 1px 1px 2px rgba(255,255,255,0.4); 
             cursor: pointer; margin-left: 5px; transition: transform 0.05s; 
-            position: relative; /* 擬似要素の親として設定 */
+            position: relative;
         }
         #btnResetZoom:active, #btnReload:active { transform: scale(0.9); box-shadow: inset 0 0 8px rgba(0,0,0,0.6); }
         
@@ -205,7 +208,7 @@
                         <video id="previewMediaVideo" controls autoplay loop></video>
                         <div id="previewControls">
                             <button id="btnCancel">CANCEL</button>
-                            <button id="btnSave">SAVE</button>
+                            <button id="btnSave">SAVE TO DEVICE</button>
                         </div>
                     </div>
                 </div>
@@ -341,6 +344,7 @@
         function renderToCanvas(targetCanvas, targetCtx, isForExport = false) {
             const vw = video.videoWidth, vh = video.videoHeight;
             if (vw === 0 || vh === 0) return;
+
             const minDim = Math.min(vw, vh);
             const cropDim = minDim / config.zoomLevel; 
             let sx = (vw - cropDim) / 2, sy = (vh - cropDim) / 2;
@@ -350,6 +354,7 @@
             const is16Color = palettes[config.paletteIdx].name === "16 COLOR";
             const imgData = offCtx.getImageData(0, 0, GB_RES, GB_RES);
             const d = imgData.data;
+            
             const cF = (259 * (config.contrast * 10 + 255)) / (255 * (259 - config.contrast * 10));
             const bV = config.brightness * 10;
 
@@ -389,7 +394,9 @@
             const pal = is16 ? null : palettes[config.paletteIdx].colors;
             const dk = is16 ? '#000' : `rgb(${pal[0].join(',')})`;
             const lt = is16 ? '#FFF' : `rgb(${pal[3].join(',')})`;
-            ctx.fillStyle = dk; const bs = 80;
+            
+            ctx.fillStyle = dk;
+            const bs = 80; 
 
             if (type === "FILM") {
                 ctx.fillRect(0, 0, 1080, 60); ctx.fillRect(0, 1020, 1080, 60);
@@ -440,12 +447,11 @@
 
         function showToast(msg) { toast.innerText = msg; toast.style.display = 'block'; clearTimeout(toast.timer); toast.timer = setTimeout(() => toast.style.display = 'none', 1000); }
         function handleDpad(key) {
-            if (previewContainer.style.display === 'flex') return;
-            if (key==='up') config.brightness = Math.min(5, config.brightness+1);
-            if (key==='down') config.brightness = Math.max(-5, config.brightness-1);
-            if (key==='right') config.contrast = Math.min(5, config.contrast+1);
-            if (key==='left') config.contrast = Math.max(-5, config.contrast-1);
-            // 修正: テキスト表示を復活
+            if(previewContainer.style.display === 'flex') return;
+            if(key==='up') config.brightness = Math.min(5, config.brightness+1);
+            if(key==='down') config.brightness = Math.max(-5, config.brightness-1);
+            if(key==='right') config.contrast = Math.min(5, config.contrast+1);
+            if(key==='left') config.contrast = Math.max(-5, config.contrast-1);
             const label = (key==='up'||key==='down') ? 'BRIGHT' : 'CONTRAST';
             const val = (key==='up'||key==='down') ? config.brightness : config.contrast;
             showToast(`${label}: ${val}`);
@@ -457,6 +463,7 @@
             config.paletteIdx = (config.paletteIdx + 1) % palettes.length;
             showToast(palettes[config.paletteIdx].name);
         });
+
         document.getElementById('btnSelect').addEventListener('click', (e) => {
             e.preventDefault(); 
             if(previewContainer.style.display === 'flex') return;
@@ -464,6 +471,7 @@
             showToast(`FRAME: ${frames[config.frameIdx]}`);
             if(frames[config.frameIdx] === "LOCATION TAG") updateLocation();
         });
+
         document.getElementById('btnStart').addEventListener('click', (e) => {
             e.preventDefault(); 
             if(previewContainer.style.display === 'flex') return;
@@ -471,6 +479,7 @@
             initCamera(); showToast("SWITCH CAM");
         });
 
+        // A Button Logic
         const btnA = document.getElementById('btnA');
         function startPressA(e) {
             e.preventDefault();
@@ -494,9 +503,28 @@
         }
         btnA.addEventListener('mousedown', startPressA); btnA.addEventListener('touchstart', startPressA);
         btnA.addEventListener('mouseup', endPressA); btnA.addEventListener('touchend', endPressA);
+
         ['Up','Down','Left','Right'].forEach(d => document.getElementById('d'+d).addEventListener('click', (e)=>{ e.preventDefault(); handleDpad(d.toLowerCase()); }));
         
-        updateLocation(); initCamera(); applyZoom(config.zoomLevel); showToast("READY (1080P)");
+        zoomSlider.addEventListener('input', (e) => { config.zoomLevel = parseFloat(e.target.value); showToast(`ZOOM: x${config.zoomLevel.toFixed(1)}`); });
+        btnResetZoom.addEventListener('click', (e) => { e.preventDefault(); zoomSlider.value = 1.0; config.zoomLevel = 1.0; });
+        btnReload.addEventListener('click', (e) => { e.preventDefault(); location.reload(); });
+        btnSave.addEventListener('click', saveMedia); btnCancel.addEventListener('click', hidePreview);
+
+        function updateLocation() {
+            config.locationName = "GETTING LOCATION...";
+            setTimeout(() => { config.locationName = "SHIBUYA, TOKYO"; showToast("LOCATION READY"); }, 1000);
+        }
+
+        function autoFitScreen() {
+            const scale = Math.min(window.innerWidth / 340, window.innerHeight / 600);
+            container.style.transform = `scale(${scale})`;
+        }
+        window.addEventListener('resize', autoFitScreen);
+        
+        autoFitScreen();
+        initCamera(); 
+        showToast("READY (1080P)");
     </script>
 </body>
 </html>
