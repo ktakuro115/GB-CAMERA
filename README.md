@@ -2,7 +2,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
-    <title>GB Camera V16 (1080p) - Full Screen</title>
+    <title>GB Camera V16 (1080p) - Full Screen Fixed D-PAD</title>
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -31,7 +31,6 @@
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            /* 画面いっぱいに広げる設定を維持 */
             touch-action: none;
             user-select: none;
             -webkit-user-select: none;
@@ -180,7 +179,13 @@
         .controls { width: 100%; height: 250px; position: relative; } 
 
         /* D-PAD */
-        .dpad-area { position: absolute; top: 10px; left: 20px; width: 100px; height: 100px; } 
+        .dpad-area { 
+            position: absolute; 
+            top: 10px; 
+            left: 45px; 
+            width: 100px; 
+            height: 100px; 
+        } 
         .cross { background: #222; position: absolute; border-radius: 4px; box-shadow: 2px 2px 5px rgba(0,0,0,0.4); pointer-events: none; transition: transform 0.05s ease, box-shadow 0.05s ease; }
         .c-h { width: 90px; height: 30px; top: 30px; left: 0; }
         .c-v { width: 30px; height: 90px; top: 0; left: 30px; }
@@ -200,7 +205,17 @@
 
 
         /* AB BUTTONS */
-        .ab-area { position: absolute; top: 30px; right: 15px; width: 130px; height: 60px; transform: rotate(-25deg); display: flex; gap: 15px; align-items: flex-end; }
+        .ab-area { 
+            position: absolute; 
+            top: 10px;   /* ★修正: 10pxに調整 */
+            right: 25px; /* ★修正: 25pxに調整 */
+            width: 130px; 
+            height: 60px; 
+            transform: rotate(-25deg); 
+            display: flex; 
+            gap: 15px; 
+            align-items: flex-end; 
+        }
         .btn-wrapper-ab { display: flex; flex-direction: column; align-items: center; position: relative; }
         .btn-round { 
             width: 45px; height: 45px; background: #cc3333; border-radius: 50%; 
@@ -350,7 +365,6 @@
             { name: "CYBER BLUE", colors: [[0,20,40], [0,70,110], [0,140,190], [180,230,255]], border: "#004070" },
             { name: "16 COLOR", colors: [], border: "#000" } 
         ];
-        // フレーム順序を修正
         const frames = ["OFF", "LOCATION TAG", "DATETIME", "FILM", "SCANLINE", "WHITE BORDER"]; 
         const bayerMatrix = [[0, 8, 2, 10],[12, 4, 14, 6],[3, 11, 1, 9],[15, 7, 13, 5]];
 
