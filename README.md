@@ -2,7 +2,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=no">
-    <title>GB Camera V22 (Boot Logo)</title>
+    <title>GB Camera V23 (No Frame on Rec)</title>
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -468,12 +468,17 @@
             bufferCtx.imageSmoothingEnabled = false;
             bufferCtx.drawImage(offCanvas, 0, 0, REC_RES, REC_RES);
             try {
+                // 録画用バッファにもdrawOverlayを呼ぶが、
+                // isRecordingがtrueなので関数内で即returnされる
                 drawOverlay(bufferCtx, REC_RES);
             } catch(e) { console.warn(e); }
             recCtx.drawImage(bufferCanvas, 0, 0);
         }
 
         function drawOverlay(ctx, size) {
+            // ★追加: 録画中はフレームを描画しない（画面上も消える）
+            if (isRecording) return;
+
             const type = frames[config.frameIdx];
             if (type === "OFF") return;
 
